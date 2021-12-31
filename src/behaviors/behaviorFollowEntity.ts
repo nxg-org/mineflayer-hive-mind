@@ -1,4 +1,3 @@
-import { StateBehavior, StateMachineTargets } from "../statemachine";
 import { Bot } from "mineflayer";
 import { Entity } from "prismarine-entity";
 import { Movements, goals } from "mineflayer-pathfinder";

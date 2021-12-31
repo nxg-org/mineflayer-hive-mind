@@ -1,3 +1,4 @@
+import { Bot } from 'mineflayer'
 import { HiveBehavior } from '../HiveMindStates'
 
 /**
@@ -7,4 +8,14 @@ export class BehaviorIdle implements HiveBehavior {
   stateName: string = 'idle'
   active: boolean = false
   autonomous: boolean = false
+  bots: Bot[] = []
+
+  constructor() {
+
+  }
+
+
+  onStateEntered(...bots: Bot[]) {
+      this.bots = bots
+  }
 }

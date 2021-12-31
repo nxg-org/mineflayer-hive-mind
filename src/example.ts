@@ -14,12 +14,34 @@ let rl = createInterface({
     output: process.stdout,
 });
 
-let hiveMind: CentralHiveMind | undefined
+let hiveMind: CentralHiveMind | undefined;
+let bots: Bot[] = []
+let follow = new BehaviorFollowEntity();
+let idle = new BehaviorIdle();
+let transitions = [
+    new HiveTransition({
+        parent: follow,
+        child: idle,
+    }),
+    new HiveTransition({
+        parent: idle,
+        child: follow,
+    }),
+];
 
-let bots: Bot[] = [];
+let test = new NestedHiveMind({
+    stateName: "root",
+    bots: bots,
+    autonomous: true,
+    ignoreBusy: true,
+    enter: idle,
+    transitions: transitions,
+});
 
-async function run() {
-    for (let i = 0; i < 1; i++) {
+
+async function main() {
+
+    for (let i = 0; i < 2; i++) {
         bots.push(
             createBot({
                 username: `testbot_${i}`,
@@ -29,39 +51,9 @@ async function run() {
         );
         bots[i].loadPlugin(pathfinder);
         await sleep(1000);
-    }
 }
-
-
-async function main() {
-    let follow = new BehaviorFollowEntity();
-    let idle = new BehaviorIdle();
-    let transitions = [
-        new HiveTransition({
-            parent: follow,
-            child: idle,
-        }),
-
-        new HiveTransition({
-            parent: idle,
-            child: follow,
-        }),
-    ];
-
-    let test = new NestedHiveMind({
-        stateName: "root",
-        bots: bots,
-        autonomous: true,
-        ignoreBusy: false,
-        enter: idle,
-        transitions: transitions,
-    });
-
-    await run();
-    hiveMind = new CentralHiveMind(bots, test);
+hiveMind = new CentralHiveMind(bots, test);
 }
-
-main();
 
 rl.on("line", (input: string) => {
     const split = input.split(" ");
@@ -74,3 +66,20 @@ rl.on("line", (input: string) => {
             break;
     }
 });
+
+
+async function report() {
+
+    while (true) {
+        if (hiveMind){
+            for (const key of Object.keys(hiveMind.root.activeBots)) {
+                console.log(key, hiveMind.root.activeBots[key].length)
+            }
+        }
+
+        await sleep(1000)
+    }
+}
+
+main();
+report();

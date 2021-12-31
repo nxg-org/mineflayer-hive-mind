@@ -5,6 +5,8 @@ import { Bot } from "mineflayer";
  * changes.
  */
 export interface HiveBehavior {
+    bots: Bot[];
+    botCount?: number;
     autonomous: boolean;
     /**
      * The name of this behavior state.
