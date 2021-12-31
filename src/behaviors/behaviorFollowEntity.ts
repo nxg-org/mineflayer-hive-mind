@@ -19,8 +19,8 @@ export class BehaviorFollowEntity extends HiveBehavior {
 
     followDistance: number = 0;
 
-    @setProto(false)
-    autonomous: boolean = false;
+    @setProto(true)
+    autonomous: boolean = true;
 
     constructor(bot: Bot) {
         super(bot);

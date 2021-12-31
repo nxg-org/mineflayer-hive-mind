@@ -18,9 +18,8 @@ export class NestedHiveMind extends EventEmitter implements NestedHiveMindOption
     readonly stateName: string;
     readonly bots: Bot[];
     readonly runningStates: { [behaviorName: string]: HiveBehavior[] };
-    readonly states: (typeof HiveBehavior)[];
+    readonly states: typeof HiveBehavior[];
     readonly transitions: HiveTransition[];
-    readonly bgTransitions: HiveTransition[];
     activeStateType?: typeof HiveBehavior;
     readonly enter: typeof HiveBehavior;
     readonly exit?: typeof HiveBehavior;
@@ -45,7 +44,6 @@ export class NestedHiveMind extends EventEmitter implements NestedHiveMindOption
         this.enter = enter;
         this.exit = exit;
         this.runningStates = {};
-        this.bgTransitions = [];
         this.states = this.findStates();
         this.recognizeStates();
     }
@@ -83,37 +81,46 @@ export class NestedHiveMind extends EventEmitter implements NestedHiveMindOption
     private getUsableBots(): Bot[] {
         const usable = [];
         for (const bot of this.bots) {
-            const info = Object.entries(this.runningStates).find(([name, botList]) => botList.map(state => state.bot).includes(bot));
+            const info = Object.entries(this.runningStates).find(([name, botList]) => botList.find((b) => b.bot === bot));
             if (this.ignoreBusy && info) continue;
-            if (!this.ignoreBusy && info) this.runningStates[info[0]].splice(info[1].map(state => state.bot).indexOf(bot), 1);
+            if (!this.ignoreBusy && info) {
+                const state = this.runningStates[info[0]].find((stateType) => stateType.bot === bot)!;
+                if (state.autonomous) continue;
+                this.removeState(info[0], state);
+                state.active = false;
+                state.onStateExited?.();
+            }
             usable.push(bot);
         }
         return usable;
+    }
+
+    private removeState(stateName: string, state: HiveBehavior, index?: number) {
+        index ??= this.runningStates[stateName].indexOf(state);
+        if (index > -1) this.runningStates[stateName].splice(index, 1);
+    }
+
+    private pushState(stateName: string, state: HiveBehavior) {
+        if (!this.runningStates[stateName].includes(state)) this.runningStates[stateName].push(state);
     }
 
     public onStateEntered(): void {
         this.activeStateType = this.enter;
         const bots = this.getUsableBots();
         this.enterStates(this.activeStateType, ...bots);
-
     }
-
-    private getAllStates(stateType: typeof HiveBehavior) {
-        return this.runningStates[stateType.name]
-    }
-
 
     private setStatesInactive(stateType: typeof HiveBehavior) {
-        for (const state of this.getAllStates(stateType)){
+        for (const state of this.runningStates[stateType.name]) {
             state.active = false;
         }
     }
 
     private enterStates(enterState: typeof HiveBehavior, ...bots: Bot[]): void {
         for (const bot of bots) {
-            const state = new enterState(bot)
+            const state = new enterState(bot);
             state.active = true;
-            this.runningStates[enterState.name].push(state)
+            this.runningStates[enterState.name].push(state);
             state.onStateEntered?.();
         }
         this.emit("stateChanged");
@@ -121,9 +128,9 @@ export class NestedHiveMind extends EventEmitter implements NestedHiveMindOption
 
     private exitStates(exitState: typeof HiveBehavior): void {
         if (exitState.prototype.autonomous) return;
-        const states = this.runningStates[exitState.name]
+        const states = this.runningStates[exitState.name];
         for (const state of states) {
-            state.active = false
+            state.active = false;
             state.onStateExited?.();
         }
         this.runningStates[exitState.name] = [];
@@ -132,12 +139,11 @@ export class NestedHiveMind extends EventEmitter implements NestedHiveMindOption
 
     private updateStates(): void {
         if (!this.activeStateType) return;
-        const states = this.runningStates[this.activeStateType.name]
+        const states = this.runningStates[this.activeStateType.name];
         for (const state of states) {
             state.update?.();
         }
     }
-
 
     public update(): void {
         this.updateStates();
@@ -145,55 +151,47 @@ export class NestedHiveMind extends EventEmitter implements NestedHiveMindOption
 
         for (let i = 0; i < this.transitions.length; i++) {
             const transition = this.transitions[i];
-            if (transition.parentState === this.activeStateType) {
-                if (transition.isTriggered() || transition.shouldTransition()) {
-                    transition.resetTrigger();
-                    if (transition.parentState.prototype.autonomous) {
-                        if (!this.bgTransitions.includes(transition)) {
-                            this.bgTransitions.push(transition);
-                            transition.onTransition();
-                            this.activeStateType = transition.childState;
-                            return;
-                        }
-                    } else {
-                        this.setStatesInactive(this.activeStateType)
-                        this.exitStates(this.activeStateType);
-                        transition.onTransition();
-                        const bots = this.getUsableBots();
-                        this.activeStateType = transition.childState;
-                        this.enterStates(this.activeStateType, ...bots)
-                    }
-
-
-                   
-                    return;
+            // if (transition.parentState === this.activeStateType) {
+            if (transition.isTriggered() || transition.shouldTransition()) {
+                transition.resetTrigger();
+                if (transition.parentState.prototype.autonomous) {
+                    transition.onTransition();
+                    this.activeStateType = transition.childState;
+                } else {
+                    this.setStatesInactive(transition.parentState);
+                    this.exitStates(transition.parentState);
+                    transition.onTransition();
+                    const bots = this.getUsableBots();
+                    this.activeStateType = transition.childState;
+                    this.enterStates(this.activeStateType, ...bots);
                 }
+
+                // return;
             }
         }
     }
 
-
     public monitorAutonomous(): void {
-        for (const transit of this.bgTransitions) {
-            for (const state of this.runningStates[transit.parentState.name]) {
-                if (state.exitCase?.()) {
-                    state.active = false;
-                    state.onStateExited?.();
-                    const index = this.runningStates[transit.parentState.name].indexOf(state);
-                    if (index > -1) {
-                        const bot = this.runningStates[transit.parentState.name][index].bot
-                        this.runningStates[transit.parentState.name].splice(index, 1);
-                        const newState = new transit.childState(bot);
-                        newState.active = true;
-                        newState.onStateEntered?.();
-                        this.runningStates[transit.childState.name].push(newState)
-                    }
-                    const indexOne = this.bgTransitions.indexOf(transit);
-                    if (indexOne > -1) this.bgTransitions.splice(index, 1);    
-                }
-                
-            }
+        for (const stateName in this.runningStates) {
+            for (const state of this.runningStates[stateName]) {
+                if (state.autonomous)
+                    if (state.exitCase?.()) {
+                        state.active = false;
+                        state.onStateExited?.();
+                        const index = this.runningStates[stateName].indexOf(state);
+                        if (index > -1) {
+                            const bot = this.runningStates[stateName][index].bot;
+                            this.removeState(stateName, state, index);
 
+                            if (this.activeStateType) {
+                                const newState = new this.activeStateType(bot);
+                                newState.active = true;
+                                newState.onStateEntered?.();
+                                this.pushState(this.activeStateType.name, newState);
+                            }
+                        }
+                    }
+            }
         }
     }
 

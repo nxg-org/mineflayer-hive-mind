@@ -4,8 +4,7 @@ import { CentralHiveMind, HiveTransition, NestedHiveMind } from ".";
 import { Move, Movements, pathfinder } from "mineflayer-pathfinder";
 import { promisify } from "util";
 import md from "minecraft-data";
-import { BehaviorFollowEntity } from "./behaviors";
-import { BehaviorIdle } from "./behaviors/behaviorIdle";
+import { BehaviorFollowEntity, BehaviorIdle, BehaviorLookAtEntity } from "./behaviors";
 import { createInterface } from "readline";
 const sleep = promisify(setTimeout);
 
@@ -20,10 +19,24 @@ let transitions = [
     new HiveTransition({
         parent: BehaviorIdle,
         child: BehaviorFollowEntity,
+        name: "idleToFollow"
     }),
     new HiveTransition({
         parent: BehaviorFollowEntity,
         child: BehaviorIdle,
+        name: "followToIdle"
+    }),
+
+    new HiveTransition({
+        parent: BehaviorIdle,
+        child: BehaviorLookAtEntity,
+        name: "idleToLook"
+    }),
+
+    new HiveTransition({
+        parent: BehaviorLookAtEntity,
+        child: BehaviorIdle,
+        name: "lookToIdle"
     }),
 ];
 
@@ -39,7 +52,7 @@ let test = new NestedHiveMind({
 
 async function main() {
 
-    for (let i = 0; i < 1; i++) {
+    for (let i = 0; i < 2; i++) {
         bots.push(
             createBot({
                 username: `testbot_${i}`,
@@ -56,11 +69,17 @@ hiveMind = new CentralHiveMind(bots, test);
 rl.on("line", (input: string) => {
     const split = input.split(" ");
     switch (split[0]) {
-        case "start":
+        case "come":
             hiveMind!.root.transitions[0].trigger();
             break;
-        case "stop":
+        case "movestop":
             hiveMind!.root.transitions[1].trigger();
+            break;
+        case "look":
+            hiveMind!.root.transitions[2].trigger();
+            break;
+        case "lookstop":
+            hiveMind!.root.transitions[3].trigger();
             break;
     }
 });
@@ -72,7 +91,7 @@ async function report() {
         if (hiveMind){
             console.log(hiveMind.root.activeStateType)
             for (const key of Object.keys(hiveMind.root.runningStates)) {
-                console.log(key, hiveMind.root.runningStates[key].length, hiveMind.root.bgTransitions)
+                console.log(key, hiveMind.root.runningStates[key].length)
             }
         }
 
