@@ -1,0 +1,73 @@
+Arguments: 
+  /usr/local/bin/node /usr/bin/yarn add mineflayer-state-machine
+
+PATH: 
+  /home/generel/.cargo/bin:/usr/local/bin:/usr/local/sbin:/usr/bin:/usr/sbin:/home/generel/bin:/home/generel/.local/bin:/home/generel/bin:/home/generel/.local/bin:/home/generel/.local/bin:/home/generel/.local/bin
+
+Yarn version: 
+  1.22.10
+
+Node version: 
+  16.6.1
+
+Platform: 
+  linux x64
+
+Trace: 
+  Error: https://registry.npmjs.com/mineflayer-state-machine: Not found
+      at Request.params.callback [as _callback] (/usr/lib/node_modules/yarn/lib/util/request-manager.js:452:18)
+      at Request.self.callback (/usr/lib/node_modules/yarn/node_modules/request/request.js:185:22)
+      at Request.emit (node:events:394:28)
+      at Request.<anonymous> (/usr/lib/node_modules/yarn/node_modules/request/request.js:1154:10)
+      at Request.emit (node:events:394:28)
+      at IncomingMessage.<anonymous> (/usr/lib/node_modules/yarn/node_modules/request/request.js:1076:12)
+      at Object.onceWrapper (node:events:513:28)
+      at IncomingMessage.emit (node:events:406:35)
+      at endReadableNT (node:internal/streams/readable:1331:12)
+      at processTicksAndRejections (node:internal/process/task_queues:83:21)
+
+npm manifest: 
+  {
+      "name": "@nxg-org/mineflayer-hive-mind",
+      "version": "1.3.0",
+      "description": "Intermediate functionality for bow and sword pvp.",
+      "keywords": [
+          "mineflayer",
+          "mineflayer-pvp",
+          "mineflayer-plugin",
+          "mineflayer-custom-pvp"
+      ],
+      "repository": {
+          "type": "git",
+          "url": "git+https://github.com/nxg-org/mineflayer-custom-pvp.git"
+      },
+      "license": "GPL-3.0",
+      "author": "generel_schwerz",
+      "main": "lib/index.js",
+      "types": "lib/index.d.ts",
+      "scripts": {
+          "build": "npx tsc",
+          "prepublish": "npm run build",
+          "test": "node --trace-warnings lib/example.js"
+      },
+      "dependencies": {
+          "@nxg-org/mineflayer-trajectories": "^1.0.12",
+          "@nxg-org/mineflayer-util-plugin": "^1.3.11",
+          "minecraft-data": "^2.97.0",
+          "mineflayer": "^3.11.2",
+          "prismarine-block": "^1.10.3",
+          "prismarine-item": "^1.11.1",
+          "prismarine-physics": "^1.3.1",
+          "vec3": "^0.1.7"
+      },
+      "devDependencies": {
+          "@types/node": "^16.11.17",
+          "typescript": "^4.5.2"
+      }
+  }
+
+yarn manifest: 
+  No manifest
+
+Lockfile: 
+  No lockfile
