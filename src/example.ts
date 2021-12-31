@@ -1,5 +1,5 @@
 import { Bot, createBot } from "mineflayer";
-import { CentralHiveMind, HiveTransition, NestedHiveMind } from ".";
+import { CentralHiveMind, HiveMindWebserver, HiveTransition, NestedHiveMind } from ".";
 
 import { Move, Movements, pathfinder } from "mineflayer-pathfinder";
 import { promisify } from "util";
@@ -14,29 +14,30 @@ let rl = createInterface({
 });
 
 let hiveMind: CentralHiveMind | undefined;
-let bots: Bot[] = []
+let webserver: HiveMindWebserver | undefined;
+let bots: Bot[] = [];
 let transitions = [
     new HiveTransition({
         parent: BehaviorIdle,
         child: BehaviorFollowEntity,
-        name: "idleToFollow"
+        name: "idleToFollow",
     }),
     new HiveTransition({
         parent: BehaviorFollowEntity,
         child: BehaviorIdle,
-        name: "followToIdle"
+        name: "followToIdle",
     }),
 
     new HiveTransition({
         parent: BehaviorIdle,
         child: BehaviorLookAtEntity,
-        name: "idleToLook"
+        name: "idleToLook",
     }),
 
     new HiveTransition({
         parent: BehaviorLookAtEntity,
         child: BehaviorIdle,
-        name: "lookToIdle"
+        name: "lookToIdle",
     }),
 ];
 
@@ -49,9 +50,7 @@ let test = new NestedHiveMind({
     transitions: transitions,
 });
 
-
 async function main() {
-
     for (let i = 0; i < 2; i++) {
         bots.push(
             createBot({
@@ -62,8 +61,10 @@ async function main() {
         );
         bots[i].loadPlugin(pathfinder);
         await sleep(1000);
-}
-hiveMind = new CentralHiveMind(bots, test);
+    }
+    hiveMind = new CentralHiveMind(bots, test);
+    webserver = new HiveMindWebserver(hiveMind);
+    webserver.startServer();
 }
 
 rl.on("line", (input: string) => {
@@ -84,18 +85,16 @@ rl.on("line", (input: string) => {
     }
 });
 
-
 async function report() {
-
     while (true) {
-        if (hiveMind){
-            console.log(hiveMind.root.activeStateType)
+        if (hiveMind) {
+            console.log(hiveMind.root.activeStateType);
             for (const key of Object.keys(hiveMind.root.runningStates)) {
-                console.log(key, hiveMind.root.runningStates[key].length)
+                console.log(key, hiveMind.root.runningStates[key].length);
             }
         }
 
-        await sleep(1000)
+        await sleep(1000);
     }
 }
 

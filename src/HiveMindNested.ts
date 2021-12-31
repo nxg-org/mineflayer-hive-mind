@@ -85,7 +85,8 @@ export class NestedHiveMind extends EventEmitter implements NestedHiveMindOption
             if (this.ignoreBusy && info) continue;
             if (!this.ignoreBusy && info) {
                 const state = this.runningStates[info[0]].find((stateType) => stateType.bot === bot)!;
-                if (state.autonomous) continue;
+                const staticRef = this.states.find(state => this.runningStates[info[0]][0] instanceof state)! //rough workaround. fix later.
+                if (staticRef.autonomous) continue;
                 this.removeState(info[0], state);
                 state.active = false;
                 state.onStateExited?.();
@@ -127,7 +128,7 @@ export class NestedHiveMind extends EventEmitter implements NestedHiveMindOption
     }
 
     private exitStates(exitState: typeof HiveBehavior): void {
-        if (exitState.prototype.autonomous) return;
+        if (exitState.autonomous) return;
         const states = this.runningStates[exitState.name];
         for (const state of states) {
             state.active = false;
@@ -151,30 +152,32 @@ export class NestedHiveMind extends EventEmitter implements NestedHiveMindOption
 
         for (let i = 0; i < this.transitions.length; i++) {
             const transition = this.transitions[i];
-            // if (transition.parentState === this.activeStateType) {
-            if (transition.isTriggered() || transition.shouldTransition()) {
-                transition.resetTrigger();
-                if (transition.parentState.prototype.autonomous) {
-                    transition.onTransition();
-                    this.activeStateType = transition.childState;
-                } else {
-                    this.setStatesInactive(transition.parentState);
-                    this.exitStates(transition.parentState);
-                    transition.onTransition();
-                    const bots = this.getUsableBots();
-                    this.activeStateType = transition.childState;
-                    this.enterStates(this.activeStateType, ...bots);
-                }
+            if (transition.parentState === this.activeStateType) {
+                if (transition.isTriggered() || transition.shouldTransition()) {
+                    transition.resetTrigger();
+                    if (transition.parentState.autonomous) {
+                        transition.onTransition();
+                        this.activeStateType = transition.childState;
+                    } else {
+                        this.setStatesInactive(transition.parentState);
+                        this.exitStates(transition.parentState);
+                        transition.onTransition();
+                        const bots = this.getUsableBots();
+                        this.activeStateType = transition.childState;
+                        this.enterStates(this.activeStateType, ...bots);
+                    }
 
-                // return;
+                    return;
+                }
             }
         }
     }
 
     public monitorAutonomous(): void {
         for (const stateName in this.runningStates) {
+            const staticRef = this.states.find(state => this.runningStates[stateName][0] instanceof state)! //rough workaround. fix later.
             for (const state of this.runningStates[stateName]) {
-                if (state.autonomous)
+                if (staticRef.autonomous)
                     if (state.exitCase?.()) {
                         state.active = false;
                         state.onStateExited?.();

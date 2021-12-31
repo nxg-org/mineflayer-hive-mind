@@ -6,7 +6,7 @@ import { HiveBehavior } from "..";
  * The bot will look at the target entity.
  */
 export class BehaviorLookAtEntity extends HiveBehavior {
-    stateName: string = "lookAtEntity";
+    static stateName: string = "lookAtEntity";
     active: boolean = false;
     target?: Entity;
 

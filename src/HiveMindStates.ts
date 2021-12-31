@@ -1,42 +1,41 @@
 import { Bot } from "mineflayer";
 
-
-
-
 export class HiveBehavior {
-    readonly bot: Bot;
-    autonomous: boolean = false;
     /**
      * The name of this behavior state.
      */
-    stateName: string = "defaultName";
-
+    static stateName: string = "defaultName";
+    static autonomous: boolean = false;
+    readonly bot: Bot;
     /**
      * Gets whether or not this state is currently active.
      */
     active: boolean = false;
+
     /**
      * Called when the bot enters this behavior state.
      */
-    onStateEntered?(): void {};
+    onStateEntered?(): void {}
 
     /**
      * Called each tick to update this behavior.
      */
-    update?(): void {};
+    update?(): void {}
 
     /**
      * Called when the bot leaves this behavior state.
      */
-    onStateExited?(): void {};
+    onStateExited?(): void {}
 
     /**
      * Called if the behavior is anonymous per tick, checks if task is complete.
      */
-    exitCase?(): boolean { return false };
+    exitCase?(): boolean {
+        return false;
+    }
 
     constructor(bot: Bot) {
-        this.bot = bot
+        this.bot = bot;
     }
 }
 
@@ -63,7 +62,6 @@ export class HiveTransition {
     onTransition: () => void;
     name?: string;
 
-
     constructor({ parent, child, name, shouldTransition = () => false, onTransition = () => {} }: HiveTransitionParameters) {
         this.parentState = parent;
         this.childState = child;
@@ -71,7 +69,6 @@ export class HiveTransition {
         this.onTransition = onTransition;
         this.name = name;
     }
-
 
     trigger(): void {
         // I may need to re-implement this later.
