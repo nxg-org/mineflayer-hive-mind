@@ -29,15 +29,9 @@ async function run() {
         );
         bots[i].loadPlugin(pathfinder);
         await sleep(1000);
-        // bots.push({
-        // });
     }
 }
 
-//I require all of the bots to be in context upon creation
-//so, if there's bots on different tasks/threads
-//I still need those bots by reference to the hivemind
-//the only workaround is
 
 async function main() {
     let follow = new BehaviorFollowEntity();
