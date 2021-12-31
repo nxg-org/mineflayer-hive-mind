@@ -4,9 +4,6 @@ import { NestedHiveMind } from "./HiveMindNested";
 import { HiveBehavior, HiveTransition } from "./HiveMindStates";
 
 export class CentralHiveMind extends EventEmitter {
-    /**
-     * The bots the hive mind controls.
-     */
     readonly bots: Bot[];
 
     readonly activeBots: Bot[]; //{[hivemindName: string]: Bot[]}
@@ -15,7 +12,7 @@ export class CentralHiveMind extends EventEmitter {
     readonly root: NestedHiveMind;
 
     readonly transitions: HiveTransition[];
-    readonly states: HiveBehavior[];
+    readonly states: typeof HiveBehavior[];
     readonly nestedHives: NestedHiveMind[];
 
     constructor(bots: Bot[], root: NestedHiveMind) {
@@ -137,9 +134,9 @@ export class CentralHiveMind extends EventEmitter {
     private update(): void {
         this.root.update();
         for (const mind of this.nestedHives) {
-            for (const stateName in mind.activeBots) {
-                for (const bot of mind.activeBots[stateName]) {
-                    if (!this.activeBots.includes(bot)) this.activeBots.push(bot);
+            for (const stateName in mind.runningStates) {
+                for (const state of mind.runningStates[stateName]) {
+                    if (!this.activeBots.includes(state.bot)) this.activeBots.push(state.bot);
                 }
             }
         }
