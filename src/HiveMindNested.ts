@@ -166,7 +166,6 @@ export class NestedHiveMind extends EventEmitter implements NestedHiveMindOption
                         this.activeStateType = transition.childState;
                         this.enterStates(this.activeStateType, ...bots);
                     }
-
                     return;
                 }
             }

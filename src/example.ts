@@ -13,6 +13,10 @@ let rl = createInterface({
     output: process.stdout,
 });
 
+
+const debug = false
+
+
 let hiveMind: CentralHiveMind | undefined;
 let webserver: HiveMindWebserver | undefined;
 let bots: Bot[] = [];
@@ -86,7 +90,7 @@ rl.on("line", (input: string) => {
 });
 
 async function report() {
-    while (true) {
+    while (debug) {
         if (hiveMind) {
             console.log(hiveMind.root.activeStateType);
             for (const key of Object.keys(hiveMind.root.runningStates)) {
