@@ -14,7 +14,7 @@ let rl = createInterface({
 });
 
 
-const debug = false
+const debug = true
 
 
 let hiveMind: CentralHiveMind | undefined;
@@ -96,6 +96,7 @@ async function report() {
             for (const key of Object.keys(hiveMind.root.runningStates)) {
                 console.log(key, hiveMind.root.runningStates[key].length);
             }
+            console.log(hiveMind.activeBots.length)
         }
 
         await sleep(1000);
