@@ -82,10 +82,14 @@ export class HiveMindWebserver {
     this.updateClient(socket)
 
     const updateClient = (): void => this.updateClient(socket)
-    this.stateMachine.on('stateChanged', updateClient)
+    this.stateMachine.on('stateEntered', updateClient)
+    this.stateMachine.on('stateExited', updateClient)
+
 
     socket.on('disconnect', () => {
-      this.stateMachine.removeListener('stateChanged', updateClient)
+      this.stateMachine.removeListener('stateEntered', updateClient)
+      this.stateMachine.removeListener('stateExited', updateClient)
+
       console.log(`Client ${socket.handshake.address} disconnected from webserver.`)
     })
   }

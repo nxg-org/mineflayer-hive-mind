@@ -8,15 +8,15 @@ import { HiveBehavior } from "..";
 export class BehaviorLookAtEntity extends HiveBehavior {
     static stateName: string = "lookAtEntity";
     active: boolean = false;
-    target?: Entity;
+    data?: Entity;
 
     constructor(bot: Bot) {
         super(bot);
-        this.target = this.bot.nearestEntity((e) => e.username === "Generel_Schwerz") ?? undefined;
+        this.data = this.bot.nearestEntity((e) => e.type === "player") ?? undefined;
     }
 
     update(): void {
-        const entity = this.target;
+        const entity = this.data;
         if (entity != null) {
             this.bot.lookAt(entity.position.offset(0, entity.height, 0)).catch((err) => {
                 console.log(err);
@@ -30,7 +30,7 @@ export class BehaviorLookAtEntity extends HiveBehavior {
      * @returns The distance, or 0 if no target entity is assigned.
      */
     distanceToTarget(): number {
-        const entity = this.target
+        const entity = this.data
         if (entity == null) return 0;
 
         return this.bot.entity.position.distanceTo(entity.position);

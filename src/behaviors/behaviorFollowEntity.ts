@@ -12,7 +12,7 @@ export class BehaviorFollowEntity extends HiveBehavior {
     static stateName: string = "followEntity";
     static autonomous: boolean = true;
     movements?: Movements;
-    target?: Entity;
+    data?: Entity;
     followDistance: number = 0;
 
 
@@ -24,13 +24,13 @@ export class BehaviorFollowEntity extends HiveBehavior {
     onStateEntered = () => {
         const mcData = this.bot.registry;
         this.movements = new Movements(this.bot, mcData);
-        this.target = this.bot.nearestEntity((e) => e.username === "Generel_Schwerz") ?? undefined;
-        this.startMoving(this.target);
+        this.data = this.bot.nearestEntity((e) => e.username === "Generel_Schwerz") ?? undefined;
+        this.startMoving(this.data);
     };
 
     onStateExited(): void {
         this.stopMoving();
-        this.target = undefined;
+        this.data = undefined;
     }
 
     exitCase(): boolean {
@@ -39,11 +39,11 @@ export class BehaviorFollowEntity extends HiveBehavior {
     }
 
     setFollowTarget(entity: Entity): void {
-        if (this.target === entity) {
+        if (this.data === entity) {
             return;
         }
 
-        this.target = entity;
+        this.data = entity;
         this.restart();
     }
 
@@ -53,7 +53,7 @@ export class BehaviorFollowEntity extends HiveBehavior {
 
     private startMoving(entity?: Entity): void {
         if (entity == null) return;
-        if (entity === this.target && this.bot.pathfinder.isMoving()) return;
+        if (entity === this.data && this.bot.pathfinder.isMoving()) return;
         const pathfinder = this.bot.pathfinder;
         const goal = new goals.GoalFollow(entity, this.followDistance);
         if (this.movements) pathfinder.setMovements(this.movements);
@@ -66,11 +66,11 @@ export class BehaviorFollowEntity extends HiveBehavior {
         }
 
         this.stopMoving();
-        this.startMoving(this.target);
+        this.startMoving(this.data);
     }
 
     distanceToTarget(): number {
-        if (!this.target) return 0;
-        return this.bot.entity.position.distanceTo(this.target.position);
+        if (!this.data) return 0;
+        return this.bot.entity.position.distanceTo(this.data.position);
     }
 }

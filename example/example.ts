@@ -45,6 +45,7 @@ let transitions = [
 ];
 
 let test = new NestedHiveMind({
+    stateName: "root",
     bots: bots,
     autonomous: false,
     ignoreBusy: false,
