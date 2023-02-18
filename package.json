@@ -1,6 +1,6 @@
 {
   "name": "@nxg-org/mineflayer-hive-mind",
-  "version": "1.5.4",
+  "version": "1.5.5",
   "description": "Hive mind functionality for multiple mineflayer bots.",
   "keywords": [
     "mineflayer",
@@ -19,7 +19,7 @@
   "scripts": {
     "build": "npx tsc",
     "prepublish": "npm run build",
-    "test": "node --trace-warnings lib/example.js"
+    "ts:test": "ts-node example/example.ts"
   },
   "dependencies": {
     "express": "^4.17.2",
