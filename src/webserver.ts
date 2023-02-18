@@ -132,7 +132,7 @@ export class HiveMindWebserver {
       const state = this.stateMachine.states[i]
       states.push({
         id: i,
-        name: state.stateName,
+        name: state.constructor.name,
         x: undefined,
         y: undefined,
         nestGroup: this.getNestGroup(state)
@@ -179,7 +179,7 @@ export class HiveMindWebserver {
         enter: this.stateMachine.states.indexOf(nest.enter),
         exit: nest.exit != null ? this.stateMachine.states.indexOf(nest.exit) : undefined,
         indent: nest.depth ?? -1,
-        name: nest.stateName
+        name: nest.constructor.name
       })
     }
 

@@ -4,7 +4,7 @@ export class HiveBehavior {
     /**
      * The name of this behavior state.
      */
-    static stateName: string = "defaultName";
+    static stateName: string = this.constructor.name;
     static autonomous: boolean = false;
     readonly bot: Bot;
     /**

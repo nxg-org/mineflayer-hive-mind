@@ -1,7 +1,6 @@
 import { Bot } from "mineflayer";
 import { Entity } from "prismarine-entity";
 import { Movements, goals } from "mineflayer-pathfinder";
-import mcDataLoader from "minecraft-data";
 import { HiveBehavior } from "../HiveMindStates";
 
 /**
@@ -23,7 +22,7 @@ export class BehaviorFollowEntity extends HiveBehavior {
     }
 
     onStateEntered = () => {
-        const mcData = mcDataLoader(this.bot.version);
+        const mcData = this.bot.registry;
         this.movements = new Movements(this.bot, mcData);
         this.target = this.bot.nearestEntity((e) => e.username === "Generel_Schwerz") ?? undefined;
         this.startMoving(this.target);

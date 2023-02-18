@@ -30,7 +30,7 @@ export class CentralHiveMind extends EventEmitter {
         this.findNestedHiveMinds(this.root);
 
         //lazy right now. implementing later.
-        this.bots[0].on("physicsTick", () => this.update());
+        this.bots[0].on("physicsTick", this.update);
 
         this.root.active = true;
         this.root.onStateEntered();
@@ -52,7 +52,7 @@ export class CentralHiveMind extends EventEmitter {
 
     public removeBotsFrom(hiveName: string, ...bots: Bot[]) {
         for (const mind of this.nestedHives) {
-            if (mind.stateName === hiveName) {
+            if (mind.constructor.name === hiveName) {
                 for (const bot of bots) {
                     const index = mind.bots.indexOf(bot);
                     if (index > -1) mind.bots.splice(index, 1);
@@ -79,7 +79,7 @@ export class CentralHiveMind extends EventEmitter {
 
     public addBotsTo(hiveName: string, ...bots: Bot[]) {
         for (const mind of this.nestedHives) {
-            if (mind.stateName === hiveName) {
+            if (mind.constructor.name === hiveName) {
                 for (const bot of bots) {
                     if (!mind.bots.includes(bot)) this.bots.push(bot);
                     const index = this.droppedBots.indexOf(bot);
@@ -131,7 +131,7 @@ export class CentralHiveMind extends EventEmitter {
     /**
      * Called each tick to update the root state machine.
      */
-    private update(): void {
+    private update = () => {
         this.root.update();
         for (const mind of this.nestedHives) {
             for (const stateName in mind.runningStates) {

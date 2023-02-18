@@ -176,7 +176,7 @@ export class NestedHiveMind extends EventEmitter implements NestedHiveMindOption
         for (const stateName in this.runningStates) {
             const staticRef = this.states.find(state => this.runningStates[stateName][0] instanceof state)! //rough workaround. fix later.
             for (const state of this.runningStates[stateName]) {
-                if (staticRef.autonomous)
+                if (staticRef.autonomous) {
                     if (state.exitCase?.()) {
                         state.active = false;
                         state.onStateExited?.();
@@ -193,6 +193,7 @@ export class NestedHiveMind extends EventEmitter implements NestedHiveMindOption
                             }
                         }
                     }
+                }
             }
         }
     }

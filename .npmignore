@@ -2,4 +2,6 @@
 .gitignore
 .github/
 src/
+example/
+plan.md
 tsconfig.json

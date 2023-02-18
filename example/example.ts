@@ -1,10 +1,9 @@
 import { Bot, createBot } from "mineflayer";
-import { CentralHiveMind, HiveMindWebserver, HiveTransition, NestedHiveMind } from ".";
+import { CentralHiveMind, HiveMindWebserver, HiveTransition, NestedHiveMind } from "../src";
 
 import { Move, Movements, pathfinder } from "mineflayer-pathfinder";
 import { promisify } from "util";
-import md from "minecraft-data";
-import { BehaviorFollowEntity, BehaviorIdle, BehaviorLookAtEntity } from "./behaviors";
+import { BehaviorFollowEntity, BehaviorIdle, BehaviorLookAtEntity } from "../src/behaviors";
 import { createInterface } from "readline";
 const sleep = promisify(setTimeout);
 
@@ -46,7 +45,6 @@ let transitions = [
 ];
 
 let test = new NestedHiveMind({
-    stateName: "root",
     bots: bots,
     autonomous: false,
     ignoreBusy: false,
