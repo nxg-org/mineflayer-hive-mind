@@ -9,6 +9,8 @@ export interface NestedHiveMindOptions {
   enterIntermediateStates?: boolean;
 }
 
+type HiveBehaviorBuilder = new (bot: Bot, data: StateMachineData, ...additonal: any[]) => HiveBehavior;
+
 export class NestedHiveMind extends HiveBehavior {
   public static readonly stateName: string;
   public static readonly transitions: HiveTransition[];
@@ -55,8 +57,8 @@ export class NestedHiveMind extends HiveBehavior {
     this.enterState(this.activeStateType, this.bot);
   }
 
-  private enterState(enterState: typeof HiveBehavior, bot: Bot): void {
-    this.activeState = new enterState(bot, this.data);
+  private enterState(enterState: HiveBehaviorBuilder, bot: Bot, ...additional: any[]): void {
+    this.activeState = new enterState(bot, this.data, ...additional);
     this.activeState.active = true;
     this.activeState.onStateEntered?.();
     this.emit("stateEntered", enterState, this.data);
@@ -82,7 +84,7 @@ export class NestedHiveMind extends HiveBehavior {
           this.exitActiveState();
           transition.onTransition(this.data);
           this.activeStateType = transition.childState;
-          if (this.staticRef.enterIntermediateStates) this.enterState(this.activeStateType, this.bot);
+          if (this.staticRef.enterIntermediateStates) this.enterState(this.activeStateType, this.bot, transition.additionalArguments);
         }
       }
     }
