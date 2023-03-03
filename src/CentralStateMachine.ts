@@ -1,16 +1,16 @@
 import EventEmitter from "events";
 import { Bot } from "mineflayer";
 import StrictEventEmitter from "strict-event-emitter-types/types/src";
-import { HiveBehavior, HiveTransition, StateMachineData } from "./HiveMindStates";
-import { NestedHiveMind } from "./HiveMindNested";
+import { StateBehavior, StateTransition, StateMachineData } from "./StateBehavior";
+import { NestedHiveMind } from "./NestedStateMachine";
 
 export interface CentralHiveMindEvents {
-  stateEntered: (cls: NestedHiveMind, newState: typeof HiveBehavior) => void;
-  stateExited: (cls: NestedHiveMind, oldState: typeof HiveBehavior) => void;
+  stateEntered: (cls: NestedHiveMind, newState: typeof StateBehavior) => void;
+  stateExited: (cls: NestedHiveMind, oldState: typeof StateBehavior) => void;
 }
 
 
-export interface CentralHiveMindOptions {
+export interface CentralStateMachineOptions {
   bot: Bot,
   root: typeof NestedHiveMind,
   data?: StateMachineData,
@@ -18,14 +18,14 @@ export interface CentralHiveMindOptions {
   autoUpdate?: boolean
 }
 
-export class CentralHiveMind extends (EventEmitter as {
+export class CentralStateMachine extends (EventEmitter as {
   new (): StrictEventEmitter<EventEmitter, CentralHiveMindEvents>;
 }) {
   readonly bot: Bot;
   readonly root: NestedHiveMind;
 
-  readonly transitions: HiveTransition[];
-  readonly states: typeof HiveBehavior[];
+  readonly transitions: StateTransition[];
+  readonly states: typeof StateBehavior[];
   readonly nestedHives: NestedHiveMind[];
 
   constructor({
@@ -34,7 +34,7 @@ export class CentralHiveMind extends (EventEmitter as {
     data = {},
     autoStart = true,
     autoUpdate = true
-  }: CentralHiveMindOptions) {
+  }: CentralStateMachineOptions) {
     super();
     this.bot = bot;
     this.root = new root(bot, data);

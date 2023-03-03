@@ -1,28 +1,28 @@
 import { Bot } from "mineflayer";
-import { HiveBehavior, HiveTransition, StateMachineData } from "./HiveMindStates";
+import { StateBehavior, StateTransition, StateMachineData } from "./StateBehavior";
 
 export interface NestedHiveMindOptions {
   stateName: string;
-  transitions: HiveTransition[];
-  enter: typeof HiveBehavior;
-  exit?: typeof HiveBehavior;
+  transitions: StateTransition[];
+  enter: typeof StateBehavior;
+  exit?: typeof StateBehavior;
   enterIntermediateStates?: boolean;
 }
 
-type HiveBehaviorBuilder = new (bot: Bot, data: StateMachineData, ...additonal: any[]) => HiveBehavior;
+type HiveBehaviorBuilder = new (bot: Bot, data: StateMachineData, ...additonal: any[]) => StateBehavior;
 
-export class NestedHiveMind extends HiveBehavior {
+export class NestedHiveMind extends StateBehavior {
   public static readonly stateName: string;
-  public static readonly transitions: HiveTransition[];
-  public static readonly states: typeof HiveBehavior[];
-  public static readonly enter: typeof HiveBehavior;
-  public static readonly exit?: typeof HiveBehavior;
+  public static readonly transitions: StateTransition[];
+  public static readonly states: typeof StateBehavior[];
+  public static readonly enter: typeof StateBehavior;
+  public static readonly exit?: typeof StateBehavior;
   public static readonly enterIntermediateStates: boolean = false;
 
   // not really needed, but helpful.
   staticRef: typeof NestedHiveMind;
-  activeStateType?: typeof HiveBehavior;
-  activeState?: HiveBehavior;
+  activeStateType?: typeof StateBehavior;
+  activeState?: StateBehavior;
   depth: number = 0;
 
   public constructor(bot: Bot, data: StateMachineData) {
@@ -33,14 +33,14 @@ export class NestedHiveMind extends HiveBehavior {
   /**
    * Getter
    */
-  public get transitions(): HiveTransition[] {
+  public get transitions(): StateTransition[] {
     return (this.constructor as typeof NestedHiveMind).transitions;
   }
 
   /**
    * Getter
    */
-  public get states(): typeof HiveBehavior[] {
+  public get states(): typeof StateBehavior[] {
     return (this.constructor as typeof NestedHiveMind).states;
   }
 
@@ -50,7 +50,6 @@ export class NestedHiveMind extends HiveBehavior {
   public get stateName(): string {
     return (this.constructor as typeof NestedHiveMind).stateName;
   }
-
 
   public onStateEntered(): void {
     this.activeStateType = this.staticRef.enter;
@@ -68,7 +67,7 @@ export class NestedHiveMind extends HiveBehavior {
     if (!this.activeState) return;
     this.activeState.active = false;
     this.activeState.onStateExited?.();
-    this.emit("stateExited", this.activeState.constructor as typeof HiveBehavior, this.data);
+    this.emit("stateExited", this.activeState.constructor as typeof StateBehavior, this.data);
   }
 
   public update(): void {
@@ -80,11 +79,12 @@ export class NestedHiveMind extends HiveBehavior {
       if (transition.parentState === this.activeStateType) {
         if (transition.isTriggered() || transition.shouldTransition(this.data)) {
           transition.resetTrigger();
-          i = -1; // reset to beginning of loop, incremental makes i = 0;
+          i = -1;
           this.exitActiveState();
           transition.onTransition(this.data);
           this.activeStateType = transition.childState;
-          if (this.staticRef.enterIntermediateStates) this.enterState(this.activeStateType, this.bot, transition.additionalArguments);
+          if (this.staticRef.enterIntermediateStates)
+            this.enterState(this.activeStateType, this.bot, transition.additionalArguments);
         }
       }
     }
@@ -100,23 +100,16 @@ export function newNestedHiveMind({
   exit,
   enterIntermediateStates = false,
 }: NestedHiveMindOptions): typeof NestedHiveMind {
-  const states: typeof HiveBehavior[] = [];
+  const states: typeof StateBehavior[] = [];
+
   states.push(enter);
 
-  if (!!exit) {
-    if (!states.includes(exit)) {
-      states.push(exit);
-    }
-  }
+  if (!!exit && !states.includes(exit)) states.push(exit);
 
   for (let i = 0; i < transitions.length; i++) {
     const trans = transitions[i];
-    if (!states.includes(trans.parentState)) {
-      states.push(trans.parentState);
-    }
-    if (!states.includes(trans.childState)) {
-      states.push(trans.childState);
-    }
+    if (!states.includes(trans.parentState)) states.push(trans.parentState);
+    if (!states.includes(trans.childState)) states.push(trans.childState);
   }
 
   return class extends NestedHiveMind {

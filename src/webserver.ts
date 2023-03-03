@@ -1,5 +1,5 @@
 import { Bot } from 'mineflayer'
-import { CentralHiveMind, HiveBehavior } from './index'
+import { CentralStateMachine, StateBehavior } from './index'
 import socketLoader, { Socket } from 'socket.io'
 import path from 'path'
 import express from 'express'
@@ -20,7 +20,7 @@ const publicFolder = './../web'
 export class HiveMindWebserver {
   private serverRunning: boolean = false
 
-  readonly stateMachine: CentralHiveMind
+  readonly stateMachine: CentralStateMachine
   readonly port: number
 
   /**
@@ -29,7 +29,7 @@ export class HiveMindWebserver {
      * @param stateMachine - The state machine being observed.
      * @param port - The port to open this server on.
      */
-  constructor (stateMachine: CentralHiveMind, port: number = 8934) {
+  constructor (stateMachine: CentralStateMachine, port: number = 8934) {
     this.stateMachine = stateMachine
     this.port = port
   }
@@ -146,7 +146,7 @@ export class HiveMindWebserver {
     return states
   }
 
-  private getNestGroup (state: typeof HiveBehavior): number {
+  private getNestGroup (state: typeof StateBehavior): number {
     for (let i = 0; i < this.stateMachine.nestedHives.length; i++) {
       const n = this.stateMachine.nestedHives[i]
 

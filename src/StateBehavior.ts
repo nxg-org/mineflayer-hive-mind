@@ -23,12 +23,12 @@ export interface StateMachineData {
   players?: Player[];
 }
 
-export interface NestedHiveMindEvents {
-  stateEntered: (newBehavior: typeof HiveBehavior, data: StateMachineData) => void;
-  stateExited: (oldBehavior: typeof HiveBehavior, data: StateMachineData) => void;
+export interface StateBehaviorEvent {
+  stateEntered: (newBehavior: typeof StateBehavior, data: StateMachineData) => void;
+  stateExited: (oldBehavior: typeof StateBehavior, data: StateMachineData) => void;
 }
 
-export class HiveBehavior extends (EventEmitter as { new (): StrictEventEmitter<EventEmitter, NestedHiveMindEvents> }) {
+export class StateBehavior extends (EventEmitter as { new (): StrictEventEmitter<EventEmitter, StateBehaviorEvent> }) {
   /**
    * Bot the state is related to.
    */
@@ -77,8 +77,8 @@ export class HiveBehavior extends (EventEmitter as { new (): StrictEventEmitter<
  * The parameters for initializing a state transition.
  */
 export interface HiveTransitionParameters {
-  parent: typeof HiveBehavior;
-  child: typeof HiveBehavior;
+  parent: typeof StateBehavior;
+  child: typeof StateBehavior;
   name?: string;
   additionalArguments?: any[];
   shouldTransition?: (data: StateMachineData) => boolean;
@@ -89,9 +89,9 @@ export interface HiveTransitionParameters {
  * A transition that links when one state (the parent) should transition
  * to another state (the child).
  */
-export class HiveTransition {
-  readonly parentState: typeof HiveBehavior;
-  readonly childState: typeof HiveBehavior;
+export class StateTransition {
+  readonly parentState: typeof StateBehavior;
+  readonly childState: typeof StateBehavior;
   readonly additionalArguments?: any[];
   private triggerState: boolean = false;
   shouldTransition: (data: StateMachineData) => boolean;
@@ -115,11 +115,6 @@ export class HiveTransition {
   }
 
   trigger(): void {
-    // I may need to re-implement this later.
-    // if (!this.parentState.active) {
-    //     return;
-    // }
-
     this.triggerState = true;
   }
 

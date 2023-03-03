@@ -1,30 +1,30 @@
 import { createBot } from "mineflayer";
-import { CentralHiveMind, HiveMindWebserver, HiveTransition } from "../src";
+import { CentralStateMachine, HiveMindWebserver, StateTransition } from "../src";
 import { BehaviorFollowEntity, BehaviorIdle, BehaviorLookAtEntity } from "../src/behaviors";
 import { createInterface } from "readline";
-import { newNestedHiveMind } from "../src/HiveMindNested";
+import { newNestedHiveMind } from "../src/NestedStateMachine";
 
 // Start demo
 
 let transitions = [
-  new HiveTransition({
+  new StateTransition({
     parent: BehaviorIdle,
     child: BehaviorFollowEntity,
     name: "idleToFollow",
   }),
-  new HiveTransition({
+  new StateTransition({
     parent: BehaviorFollowEntity,
     child: BehaviorIdle,
     name: "followToIdle",
   }),
 
-  new HiveTransition({
+  new StateTransition({
     parent: BehaviorIdle,
     child: BehaviorLookAtEntity,
     name: "idleToLook",
   }),
 
-  new HiveTransition({
+  new StateTransition({
     parent: BehaviorLookAtEntity,
     child: BehaviorIdle,
     name: "lookToIdle",
@@ -44,7 +44,7 @@ const test = newNestedHiveMind({
   enter: BehaviorIdle,
 });
 
-const hiveMind = new CentralHiveMind({
+const hiveMind = new CentralStateMachine({
   bot: bot,
   root: test,
 });

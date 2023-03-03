@@ -1,9 +1,9 @@
-import { HiveBehavior } from "..";
+import { StateBehavior } from "..";
 
 /**
  * The bot will look at the target entity.
  */
-export class BehaviorLookAtEntity extends HiveBehavior {
+export class BehaviorLookAtEntity extends StateBehavior {
   static stateName: string = "lookAtEntity";
   active: boolean = false;
 
