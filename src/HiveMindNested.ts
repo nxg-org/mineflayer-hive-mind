@@ -6,58 +6,56 @@ import { HiveBehavior, HiveTransition, StateMachineData } from "./HiveMindStates
 
 export interface NestedHiveMindOptions {
   stateName: string;
-  bots: Bot[];
+  bot: Bot;
   transitions: HiveTransition[];
   enter: typeof HiveBehavior;
   exit?: typeof HiveBehavior;
   data?: StateMachineData;
   autonomous: boolean;
   ignoreBusy: boolean;
+  enterIntermediateStates?: boolean;
 }
 
-export interface NestedHiveMindEvents {
-  stateEntered: (newBehavior: typeof HiveBehavior) => void;
-  stateExited: (oldBehavior: typeof HiveBehavior) => void;
-  requestBots: (cls: NestedHiveMind, amount: number, exclusive: boolean) => void;
-}
+
 
 export class NestedHiveMind
-  extends (EventEmitter as { new (): StrictEventEmitter<EventEmitter, NestedHiveMindEvents> })
+  extends HiveBehavior
   implements NestedHiveMindOptions
 {
   readonly stateName: string = this.constructor.name;
   readonly autonomous: boolean;
   readonly ignoreBusy: boolean;
-  readonly bots: Bot[];
   readonly runningStates: { [className: string]: HiveBehavior[] };
   readonly states: typeof HiveBehavior[];
   readonly transitions: HiveTransition[];
   readonly enter: typeof HiveBehavior;
   readonly exit?: typeof HiveBehavior;
+  readonly enterIntermediateStates: boolean;
   data: StateMachineData;
   activeStateType?: typeof HiveBehavior;
   depth: number = 0;
   active: boolean = false;
 
   constructor({
-    stateName: name,
-    bots,
+    stateName,
+    bot,
     transitions,
     enter,
     exit = undefined,
     data = {},
     autonomous = false,
     ignoreBusy = false,
+    enterIntermediateStates = false,
   }: NestedHiveMindOptions) {
-    super();
-    this.stateName = name;
+    super(bot, data);
+    this.stateName = stateName;
     this.autonomous = autonomous;
     this.ignoreBusy = ignoreBusy;
-    this.bots = bots;
     this.transitions = transitions;
     this.enter = enter;
     this.exit = exit;
     this.data = data;
+    this.enterIntermediateStates = enterIntermediateStates;
     this.runningStates = {};
     this.states = this.findStates();
     this.recognizeStates();
@@ -65,7 +63,7 @@ export class NestedHiveMind
 
   private recognizeStates(): void {
     for (const state of this.states) {
-      this.runningStates[state.name] ??= [];
+      this.runningStates[state.name] ||= [];
     }
   }
 
@@ -93,23 +91,6 @@ export class NestedHiveMind
     return states;
   }
 
-  private getUsableBots(): Bot[] {
-    const usable = [];
-    for (const bot of this.bots) {
-      const info = Object.entries(this.runningStates).find(([name, botList]) => botList.find((b) => b.bot === bot));
-      if (this.ignoreBusy && info) continue;
-      if (!this.ignoreBusy && info) {
-        const state = this.runningStates[info[0]].find((stateType) => stateType.bot === bot)!;
-        const staticRef = this.states.find((state) => this.runningStates[info[0]][0] instanceof state)!; //rough workaround. fix later.
-        if (staticRef.autonomous) continue;
-        this.removeState(info[0], state);
-        state.active = false;
-        state.onStateExited?.();
-      }
-      usable.push(bot);
-    }
-    return usable;
-  }
 
   private removeState(stateName: string, state: HiveBehavior, index?: number) {
     index ??= this.runningStates[stateName].indexOf(state);
@@ -122,14 +103,7 @@ export class NestedHiveMind
 
   public onStateEntered(): void {
     this.activeStateType = this.enter;
-    const bots = this.getUsableBots();
-    this.enterStates(this.activeStateType, ...bots);
-  }
-
-  private setStatesInactive(stateType: typeof HiveBehavior) {
-    for (const state of this.runningStates[stateType.name]) {
-      state.active = false;
-    }
+    this.enterStates(this.activeStateType, this.bot);
   }
 
   private enterStates(enterState: typeof HiveBehavior, ...bots: Bot[]): void {
@@ -139,7 +113,7 @@ export class NestedHiveMind
       this.runningStates[enterState.name].push(state);
       state.onStateEntered?.();
     }
-    this.emit("stateEntered", enterState);
+    this.emit("stateEntered", enterState, this.data);
   }
 
   private exitStates(exitState: typeof HiveBehavior): void {
@@ -150,7 +124,7 @@ export class NestedHiveMind
       state.onStateExited?.();
     }
     this.runningStates[exitState.name] = [];
-    this.emit("stateExited", exitState);
+    this.emit("stateExited", exitState, this.data);
   }
 
   private updateStates(): void {
@@ -164,34 +138,33 @@ export class NestedHiveMind
   public update(): void {
     this.updateStates();
     this.monitorAutonomous();
-
+    const lastState = this.activeStateType;
     for (let i = 0; i < this.transitions.length; i++) {
       const transition = this.transitions[i];
       if (transition.parentState === this.activeStateType) {
-        if (transition.isTriggered() || transition.shouldTransition()) {
+        if (transition.isTriggered() || transition.shouldTransition(this.data)) {
           transition.resetTrigger();
+          i = -1; // reset to beginning of loop, incremental makes i = 0;
           if (transition.parentState.autonomous) {
-            transition.onTransition();
+            transition.onTransition(this.data);
             this.activeStateType = transition.childState;
           } else {
-            this.setStatesInactive(transition.parentState);
             this.exitStates(transition.parentState);
-            transition.onTransition();
-            const bots = this.getUsableBots();
+            transition.onTransition(this.data);
             this.activeStateType = transition.childState;
-            this.enterStates(this.activeStateType, ...bots);
+            if (this.enterIntermediateStates) this.enterStates(this.activeStateType, this.bot);
           }
-          return;
         }
       }
     }
+
+    if (this.activeStateType && this.activeStateType !== lastState) this.enterStates(this.activeStateType, this.bot);
   }
 
   public monitorAutonomous(): void {
     for (const stateName in this.runningStates) {
-      const staticRef = this.states.find((state) => this.runningStates[stateName][0] instanceof state)!; //rough workaround. fix later.
       for (const state of this.runningStates[stateName]) {
-        if (staticRef.autonomous) {
+        if ((state.constructor as typeof HiveBehavior).autonomous) {
           if (state.exitCase?.()) {
             state.active = false;
             state.onStateExited?.();
@@ -223,13 +196,9 @@ export class NestedHiveMind
    * Checks whether or not this state machine layer has finished running.
    */
   public isFinished(): boolean {
-    if (this.active == null) return true;
-    if (this.exit == null) return false;
+    if (!this.active) return true;
+    if (!this.exit) return false;
 
     return this.activeStateType === this.exit;
-  }
-
-  public requestBots(amount = 1, exclusive = false): void {
-    this.emit("requestBots", this, amount, exclusive);
   }
 }

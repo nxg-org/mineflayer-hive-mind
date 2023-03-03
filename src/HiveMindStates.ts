@@ -1,6 +1,8 @@
+import EventEmitter from "events";
 import type { Bot, Player } from "mineflayer";
 import type { Entity } from "prismarine-entity";
 import type { Item } from "prismarine-item";
+import StrictEventEmitter from "strict-event-emitter-types";
 import type { Vec3 } from "vec3";
 
 /**
@@ -8,83 +10,83 @@ import type { Vec3 } from "vec3";
  * storing in memory. These are primarily used to allow
  * states to communicate with each other more effectively.
  */
-export interface StateMachineTargets {
-    entity?: Entity
-    position?: Vec3
-    item?: Item
-    player?: Player
-    blockFace?: Vec3
-  
-    entities?: Entity[]
-    positions?: Vec3[]
-    items?: Item[]
-    players?: Player[]
+export interface StateMachineData {
+  entity?: Entity;
+  position?: Vec3;
+  item?: Item;
+  player?: Player;
+  blockFace?: Vec3;
+
+  entities?: Entity[];
+  positions?: Vec3[];
+  items?: Item[];
+  players?: Player[];
+}
+
+export interface NestedHiveMindEvents {
+  stateEntered: (newBehavior: typeof HiveBehavior, data: StateMachineData) => void;
+  stateExited: (oldBehavior: typeof HiveBehavior, data: StateMachineData) => void;
+}
+
+export class HiveBehavior extends (EventEmitter as { new (): StrictEventEmitter<EventEmitter, NestedHiveMindEvents> }) {
+  /**
+   * Whether the behavior is allowed autonomy.
+   */
+  static autonomous: boolean = false;
+
+  /**
+   * Bot the state is related to.
+   */
+  readonly bot: Bot;
+
+  /**
+   * Data instance.
+   */
+  readonly data: StateMachineData;
+
+  /**
+   * Gets whether or not this state is currently active.
+   */
+  active: boolean = false;
+
+  /**
+   * Called when the bot enters this behavior state.
+   */
+  onStateEntered?(): void {}
+
+  /**
+   * Called each tick to update this behavior.
+   */
+  update?(): void {}
+
+  /**
+   * Called when the bot leaves this behavior state.
+   */
+  onStateExited?(): void {}
+
+  /**
+   * Called if the behavior is anonymous per tick, checks if task is complete.
+   */
+  exitCase?(): boolean {
+    return false;
   }
-  
 
-export class HiveBehavior {
-    /**
-     * The name of this behavior state.
-     */
-    static stateName: string = this.constructor.name;
-
-    /**
-     * Whether the behavior is allowed autonomy.
-     */
-    static autonomous: boolean = false;
-
-    /**
-     * Bot the state is related to.
-     */
-    readonly bot: Bot;
-
-    /**
-     * Data instance.
-     */
-    readonly data: StateMachineTargets;
-
-    /**
-     * Gets whether or not this state is currently active.
-     */
-    active: boolean = false;
-
-    /**
-     * Called when the bot enters this behavior state.
-     */
-    onStateEntered?(): void {}
-
-    /**
-     * Called each tick to update this behavior.
-     */
-    update?(): void {}
-
-    /**
-     * Called when the bot leaves this behavior state.
-     */
-    onStateExited?(): void {}
-
-    /**
-     * Called if the behavior is anonymous per tick, checks if task is complete.
-     */
-    exitCase?(): boolean {
-        return false;
-    }
-
-    constructor(bot: Bot, data: StateMachineTargets) {
-        this.bot = bot;
-        this.data = data;
-    }
+  constructor(bot: Bot, data: StateMachineData) {
+    super();
+    this.bot = bot;
+    this.data = data;
+  }
 }
 
 /**
  * The parameters for initializing a state transition.
  */
 export interface HiveTransitionParameters {
-    parent: typeof HiveBehavior;
-    child: typeof HiveBehavior;
-    name?: string;
-    shouldTransition?: () => boolean;
-    onTransition?: () => void;
+  parent: typeof HiveBehavior;
+  child: typeof HiveBehavior;
+  name?: string;
+  shouldTransition?: (data: StateMachineData) => boolean;
+  onTransition?: (data: StateMachineData) => void;
 }
 
 /**
@@ -92,35 +94,41 @@ export interface HiveTransitionParameters {
  * to another state (the child).
  */
 export class HiveTransition {
-    readonly parentState: typeof HiveBehavior;
-    readonly childState: typeof HiveBehavior;
-    private triggerState: boolean = false;
-    shouldTransition: () => boolean;
-    onTransition: () => void;
-    name?: string;
-    
-    constructor({ parent, child, name, shouldTransition = () => false, onTransition = () => {} }: HiveTransitionParameters) {
-        this.parentState = parent;
-        this.childState = child;
-        this.shouldTransition = shouldTransition;
-        this.onTransition = onTransition;
-        this.name = name;
-    }
+  readonly parentState: typeof HiveBehavior;
+  readonly childState: typeof HiveBehavior;
+  private triggerState: boolean = false;
+  shouldTransition: (data: StateMachineData) => boolean;
+  onTransition: (data: StateMachineData) => void;
+  name?: string;
 
-    trigger(): void {
-        // I may need to re-implement this later.
-        // if (!this.parentState.active) {
-        //     return;
-        // }
+  constructor({
+    parent,
+    child,
+    name,
+    shouldTransition = (data) => false,
+    onTransition = (data) => {},
+  }: HiveTransitionParameters) {
+    this.parentState = parent;
+    this.childState = child;
+    this.shouldTransition = shouldTransition;
+    this.onTransition = onTransition;
+    this.name = name;
+  }
 
-        this.triggerState = true;
-    }
+  trigger(): void {
+    // I may need to re-implement this later.
+    // if (!this.parentState.active) {
+    //     return;
+    // }
 
-    isTriggered(): boolean {
-        return this.triggerState;
-    }
+    this.triggerState = true;
+  }
 
-    resetTrigger(): void {
-        this.triggerState = false;
-    }
+  isTriggered(): boolean {
+    return this.triggerState;
+  }
+
+  resetTrigger(): void {
+    this.triggerState = false;
+  }
 }

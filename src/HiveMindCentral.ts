@@ -1,132 +1,107 @@
 import EventEmitter from "events";
 import { Bot } from "mineflayer";
 import StrictEventEmitter from "strict-event-emitter-types/types/src";
-import { NestedHiveMind } from "./HiveMindNested";
-import { HiveBehavior, HiveTransition } from "./HiveMindStates";
+import { HiveBehavior, HiveTransition, StateMachineData } from "./HiveMindStates";
+import { NewHiveMindNested } from "./NewHiveMindNested";
 
 export interface CentralHiveMindEvents {
-  stateEntered: (cls: NestedHiveMind, newState: typeof HiveBehavior) => void;
-  stateExited: (cls: NestedHiveMind, oldState: typeof HiveBehavior) => void;
+  stateEntered: (cls: NewHiveMindNested, newState: typeof HiveBehavior) => void;
+  stateExited: (cls: NewHiveMindNested, oldState: typeof HiveBehavior) => void;
+}
+
+
+export interface CentralHiveMindOptions {
+  bot: Bot,
+  root: typeof NewHiveMindNested,
+  data?: StateMachineData,
+  autoStart?: boolean,
+  autoUpdate?: boolean
 }
 
 export class CentralHiveMind extends (EventEmitter as {
   new (): StrictEventEmitter<EventEmitter, CentralHiveMindEvents>;
 }) {
-  readonly bots: Bot[];
-
-  readonly activeBots: Bot[]; //{[hivemindName: string]: Bot[]}
-  readonly droppedBots: Bot[];
-
-  readonly root: NestedHiveMind;
+  readonly bot: Bot;
+  readonly root: NewHiveMindNested;
 
   readonly transitions: HiveTransition[];
   readonly states: typeof HiveBehavior[];
-  readonly nestedHives: NestedHiveMind[];
+  readonly nestedHives: NewHiveMindNested[];
 
-  constructor(bots: Bot[], root: NestedHiveMind) {
+  constructor({
+    bot,
+    root,
+    data = {},
+    autoStart = true,
+    autoUpdate = true
+  }: CentralHiveMindOptions) {
     super();
-    this.bots = bots;
-    this.root = root;
-
+    this.bot = bot;
+    this.root = new root(bot, data);
     this.states = [];
     this.transitions = [];
     this.nestedHives = [];
-    this.activeBots = [];
-    this.droppedBots = [];
     this.findStatesRecursive(this.root);
     this.findTransitionsRecursive(this.root);
-    this.findNestedHiveMinds(this.root);
+    this.findNewHiveMindNesteds(this.root);
 
-    //lazy right now. implementing later.
-    this.bots[0].on("physicsTick", this.update);
 
+    if (autoStart) {
+      this.root.active = true;
+      this.root.onStateEntered();
+
+      if (autoUpdate) {
+
+        // lazy impl, perhaps change later.
+        this.bot.on("physicsTick", this.update);
+      }
+    }
+  }
+
+
+  public start() {
+    if (this.root.active) throw "Hivemind already started! No need to start again.";
     this.root.active = true;
     this.root.onStateEntered();
-  }
 
-  public removeBots(bots: Bot[], override: boolean = false) {
-    for (const bot of bots) {
-      const index = this.bots.indexOf(bot);
-      if (index > -1) this.bots.splice(index, 1);
-      for (const mind of this.nestedHives) {
-        if (mind.autonomous && !override) continue;
-        const index = mind.bots.indexOf(bot);
-        if (index > -1) mind.bots.splice(index, 1);
-      }
-
-      if (!this.droppedBots.includes(bot)) this.droppedBots.push(bot);
+    if (!this.bot.listeners("physicsTick").includes(this.update)) {
+      this.bot.on("physicsTick", this.update);
     }
   }
 
-  public removeBotsFrom(hiveName: string, ...bots: Bot[]) {
-    for (const mind of this.nestedHives) {
-      if (mind.constructor.name === hiveName) {
-        for (const bot of bots) {
-          const index = mind.bots.indexOf(bot);
-          if (index > -1) mind.bots.splice(index, 1);
-          if (!this.droppedBots.includes(bot)) this.droppedBots.push(bot);
-        }
-      }
-    }
-  }
 
-  public addBots(...bots: Bot[]) {
-    for (const bot of bots) {
-      if (!this.bots.includes(bot)) this.bots.push(bot);
-      for (const mind of this.nestedHives) {
-        if (mind.autonomous) continue;
-        if (!mind.bots.includes(bot)) this.bots.push(bot);
-      }
 
-      const index = this.droppedBots.indexOf(bot);
-      if (index > -1) this.droppedBots.splice(index, 1);
-    }
-  }
-
-  public addBotsTo(hiveName: string, ...bots: Bot[]) {
-    for (const mind of this.nestedHives) {
-      if (mind.constructor.name === hiveName) {
-        for (const bot of bots) {
-          if (!mind.bots.includes(bot)) this.bots.push(bot);
-          const index = this.droppedBots.indexOf(bot);
-          if (index > -1) this.droppedBots.splice(index, 1);
-        }
-      }
-    }
-  }
-
-  private findNestedHiveMinds(nested: NestedHiveMind, depth: number = 0): void {
+  private findNewHiveMindNesteds(nested: NewHiveMindNested, depth: number = 0): void {
     this.nestedHives.push(nested);
     nested.depth = depth;
 
     nested.on("stateEntered", (state) => this.emit("stateEntered", nested, state));
     nested.on("stateExited", (state) => this.emit("stateExited", nested, state));
-    nested.on("requestBots", this.provideBotsOnRequest);
-
-    for (const state of nested.states) {
-      if (state instanceof NestedHiveMind) {
-        this.findNestedHiveMinds(state, depth + 1);
+ 
+    for (const state of nested.staticRef.states) {
+      if (state instanceof NewHiveMindNested) {
+        this.findNewHiveMindNesteds(state, depth + 1);
       }
     }
   }
 
-  private findStatesRecursive(nested: NestedHiveMind): void {
-    for (const state of nested.states) {
+  private findStatesRecursive(nested: NewHiveMindNested): void {
+    for (const state of nested.staticRef.states) {
       this.states.push(state);
 
-      if (state instanceof NestedHiveMind) {
+      if (state instanceof NewHiveMindNested) {
         this.findStatesRecursive(state);
       }
     }
   }
 
-  private findTransitionsRecursive(nested: NestedHiveMind): void {
-    for (const trans of nested.transitions) {
+  private findTransitionsRecursive(nested: NewHiveMindNested): void {
+    for (const trans of nested.staticRef.transitions) {
       this.transitions.push(trans);
     }
 
-    for (const state of nested.states) {
-      if (state instanceof NestedHiveMind) {
+    for (const state of nested.staticRef.states) {
+      if (state instanceof NewHiveMindNested) {
         this.findTransitionsRecursive(state);
       }
     }
@@ -135,23 +110,8 @@ export class CentralHiveMind extends (EventEmitter as {
   /**
    * Called each tick to update the root state machine.
    */
-  private update = () => {
+  public update = () => {
     this.root.update();
-    for (const mind of this.nestedHives) {
-      for (const stateName in mind.runningStates) {
-        for (const state of mind.runningStates[stateName]) {
-          if (!this.activeBots.includes(state.bot)) this.activeBots.push(state.bot);
-        }
-      }
-    }
   };
 
-  private provideBotsOnRequest = (hivemind: NestedHiveMind, amount: number, exclusive: boolean) => {
-    for (let i = 0; i < amount; i++) {
-      const bot = this.bots[i];
-      if (!bot) return;
-      //if (!exclusive) this.bots.push(bot)
-      hivemind.bots.push(bot);
-    }
-  };
 }

@@ -136,7 +136,7 @@ export class HiveMindWebserver {
       const state = this.stateMachine.states[i]
       states.push({
         id: i,
-        name: state.constructor.name,
+        name: state.name,
         x: undefined,
         y: undefined,
         nestGroup: this.getNestGroup(state)
@@ -150,8 +150,8 @@ export class HiveMindWebserver {
     for (let i = 0; i < this.stateMachine.nestedHives.length; i++) {
       const n = this.stateMachine.nestedHives[i]
 
-      if (n.states == null) continue
-      if (n.states.includes(state)) return i
+      if (n.staticRef.states == null) continue
+      if (n.staticRef.states.includes(state)) return i
     }
 
     throw new Error('Unexpected state!')
@@ -180,10 +180,10 @@ export class HiveMindWebserver {
       const nest = this.stateMachine.nestedHives[i]
       nestGroups.push({
         id: i,
-        enter: this.stateMachine.states.indexOf(nest.enter),
-        exit: nest.exit != null ? this.stateMachine.states.indexOf(nest.exit) : undefined,
+        enter: this.stateMachine.states.indexOf(nest.staticRef.enter),
+        exit: nest.staticRef.exit != null ? this.stateMachine.states.indexOf(nest.staticRef.exit) : undefined,
         indent: nest.depth ?? -1,
-        name: nest.constructor.name
+        name: nest.staticRef.stateName
       })
     }
 

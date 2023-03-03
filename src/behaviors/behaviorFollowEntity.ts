@@ -1,5 +1,4 @@
-import { Bot } from "mineflayer";
-import { Entity } from "prismarine-entity";
+import type { Entity } from "prismarine-entity";
 import { Movements, goals } from "mineflayer-pathfinder";
 import { HiveBehavior } from "../HiveMindStates";
 
@@ -9,68 +8,64 @@ import { HiveBehavior } from "../HiveMindStates";
  * This behavior relies on the mineflayer-pathfinding plugin to be installed.
  */
 export class BehaviorFollowEntity extends HiveBehavior {
-    static stateName: string = "followEntity";
-    static autonomous: boolean = true;
-    movements?: Movements;
-    data?: Entity;
-    followDistance: number = 0;
+  static stateName: string = "followEntity";
+  static autonomous: boolean = true;
+  movements?: Movements;
+  followDistance: number = 0;
 
+  onStateEntered = () => {
 
+    if (!this.bot.pathfinder) throw "Pathfinder is not loaded!";
 
-    constructor(bot: Bot) {
-        super(bot);
+    const mcData = this.bot.registry;
+    this.movements = new Movements(this.bot, mcData);
+    this.data.entity = this.bot.nearestEntity((e) => e.type === "player") ?? undefined;
+    this.startMoving(this.data.entity);
+  };
+
+  onStateExited(): void {
+    this.stopMoving();
+    this.data.entity = undefined;
+  }
+
+  exitCase(): boolean {
+    const distances = this.distanceToTarget();
+    return distances < 3;
+  }
+
+  setFollowTarget(entity: Entity): void {
+    if (this.data === entity) {
+      return;
     }
 
-    onStateEntered = () => {
-        const mcData = this.bot.registry;
-        this.movements = new Movements(this.bot, mcData);
-        this.data = this.bot.nearestEntity((e) => e.username === "Generel_Schwerz") ?? undefined;
-        this.startMoving(this.data);
-    };
+    this.data.entity = entity;
+    this.restart();
+  }
 
-    onStateExited(): void {
-        this.stopMoving();
-        this.data = undefined;
+  private stopMoving(): void {
+    this.bot.pathfinder.setGoal(null);
+  }
+
+  private startMoving(entity?: Entity): void {
+    if (!entity) return;
+    if (entity === this.data.entity && this.bot.pathfinder.isMoving()) return;
+    const pathfinder = this.bot.pathfinder;
+    const goal = new goals.GoalFollow(entity, this.followDistance);
+    if (this.movements) pathfinder.setMovements(this.movements);
+    pathfinder.setGoal(goal, true);
+  }
+
+  restart(): void {
+    if (!this.active) {
+      return;
     }
 
-    exitCase(): boolean {
-        const distances = this.distanceToTarget();
-        return distances < 3;
-    }
+    this.stopMoving();
+    this.startMoving(this.data.entity);
+  }
 
-    setFollowTarget(entity: Entity): void {
-        if (this.data === entity) {
-            return;
-        }
-
-        this.data = entity;
-        this.restart();
-    }
-
-    private stopMoving(): void {
-        this.bot.pathfinder.setGoal(null);
-    }
-
-    private startMoving(entity?: Entity): void {
-        if (entity == null) return;
-        if (entity === this.data && this.bot.pathfinder.isMoving()) return;
-        const pathfinder = this.bot.pathfinder;
-        const goal = new goals.GoalFollow(entity, this.followDistance);
-        if (this.movements) pathfinder.setMovements(this.movements);
-        pathfinder.setGoal(goal, true);
-    }
-
-    restart(): void {
-        if (!this.active) {
-            return;
-        }
-
-        this.stopMoving();
-        this.startMoving(this.data);
-    }
-
-    distanceToTarget(): number {
-        if (!this.data) return 0;
-        return this.bot.entity.position.distanceTo(this.data.position);
-    }
+  distanceToTarget(): number {
+    if (!this.data.entity) return 0;
+    return this.bot.entity.position.distanceTo(this.data.entity.position);
+  }
 }
