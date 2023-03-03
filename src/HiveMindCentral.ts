@@ -2,17 +2,17 @@ import EventEmitter from "events";
 import { Bot } from "mineflayer";
 import StrictEventEmitter from "strict-event-emitter-types/types/src";
 import { HiveBehavior, HiveTransition, StateMachineData } from "./HiveMindStates";
-import { NewHiveMindNested } from "./NewHiveMindNested";
+import { NestedHiveMind } from "./HiveMindNested";
 
 export interface CentralHiveMindEvents {
-  stateEntered: (cls: NewHiveMindNested, newState: typeof HiveBehavior) => void;
-  stateExited: (cls: NewHiveMindNested, oldState: typeof HiveBehavior) => void;
+  stateEntered: (cls: NestedHiveMind, newState: typeof HiveBehavior) => void;
+  stateExited: (cls: NestedHiveMind, oldState: typeof HiveBehavior) => void;
 }
 
 
 export interface CentralHiveMindOptions {
   bot: Bot,
-  root: typeof NewHiveMindNested,
+  root: typeof NestedHiveMind,
   data?: StateMachineData,
   autoStart?: boolean,
   autoUpdate?: boolean
@@ -22,11 +22,11 @@ export class CentralHiveMind extends (EventEmitter as {
   new (): StrictEventEmitter<EventEmitter, CentralHiveMindEvents>;
 }) {
   readonly bot: Bot;
-  readonly root: NewHiveMindNested;
+  readonly root: NestedHiveMind;
 
   readonly transitions: HiveTransition[];
   readonly states: typeof HiveBehavior[];
-  readonly nestedHives: NewHiveMindNested[];
+  readonly nestedHives: NestedHiveMind[];
 
   constructor({
     bot,
@@ -71,7 +71,7 @@ export class CentralHiveMind extends (EventEmitter as {
 
 
 
-  private findNewHiveMindNesteds(nested: NewHiveMindNested, depth: number = 0): void {
+  private findNewHiveMindNesteds(nested: NestedHiveMind, depth: number = 0): void {
     this.nestedHives.push(nested);
     nested.depth = depth;
 
@@ -79,29 +79,29 @@ export class CentralHiveMind extends (EventEmitter as {
     nested.on("stateExited", (state) => this.emit("stateExited", nested, state));
  
     for (const state of nested.staticRef.states) {
-      if (state instanceof NewHiveMindNested) {
+      if (state instanceof NestedHiveMind) {
         this.findNewHiveMindNesteds(state, depth + 1);
       }
     }
   }
 
-  private findStatesRecursive(nested: NewHiveMindNested): void {
+  private findStatesRecursive(nested: NestedHiveMind): void {
     for (const state of nested.staticRef.states) {
       this.states.push(state);
 
-      if (state instanceof NewHiveMindNested) {
+      if (state instanceof NestedHiveMind) {
         this.findStatesRecursive(state);
       }
     }
   }
 
-  private findTransitionsRecursive(nested: NewHiveMindNested): void {
+  private findTransitionsRecursive(nested: NestedHiveMind): void {
     for (const trans of nested.staticRef.transitions) {
       this.transitions.push(trans);
     }
 
     for (const state of nested.staticRef.states) {
-      if (state instanceof NewHiveMindNested) {
+      if (state instanceof NestedHiveMind) {
         this.findTransitionsRecursive(state);
       }
     }

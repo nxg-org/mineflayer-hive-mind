@@ -30,11 +30,6 @@ export interface NestedHiveMindEvents {
 
 export class HiveBehavior extends (EventEmitter as { new (): StrictEventEmitter<EventEmitter, NestedHiveMindEvents> }) {
   /**
-   * Whether the behavior is allowed autonomy.
-   */
-  static autonomous: boolean = false;
-
-  /**
    * Bot the state is related to.
    */
   readonly bot: Bot;
@@ -85,6 +80,7 @@ export interface HiveTransitionParameters {
   parent: typeof HiveBehavior;
   child: typeof HiveBehavior;
   name?: string;
+  additionalArguments?: any[];
   shouldTransition?: (data: StateMachineData) => boolean;
   onTransition?: (data: StateMachineData) => void;
 }
@@ -96,15 +92,17 @@ export interface HiveTransitionParameters {
 export class HiveTransition {
   readonly parentState: typeof HiveBehavior;
   readonly childState: typeof HiveBehavior;
+  readonly additionalArguments?: any[];
   private triggerState: boolean = false;
   shouldTransition: (data: StateMachineData) => boolean;
   onTransition: (data: StateMachineData) => void;
-  name?: string;
+  transitionName?: string;
 
   constructor({
     parent,
     child,
     name,
+    additionalArguments,
     shouldTransition = (data) => false,
     onTransition = (data) => {},
   }: HiveTransitionParameters) {
@@ -112,7 +110,8 @@ export class HiveTransition {
     this.childState = child;
     this.shouldTransition = shouldTransition;
     this.onTransition = onTransition;
-    this.name = name;
+    this.transitionName = name;
+    this.additionalArguments = additionalArguments;
   }
 
   trigger(): void {

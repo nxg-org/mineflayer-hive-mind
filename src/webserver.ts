@@ -150,8 +150,8 @@ export class HiveMindWebserver {
     for (let i = 0; i < this.stateMachine.nestedHives.length; i++) {
       const n = this.stateMachine.nestedHives[i]
 
-      if (n.staticRef.states == null) continue
-      if (n.staticRef.states.includes(state)) return i
+      if (n.states == null) continue
+      if (n.states.includes(state)) return i
     }
 
     throw new Error('Unexpected state!')
@@ -164,7 +164,7 @@ export class HiveMindWebserver {
       const transition = this.stateMachine.transitions[i]
       transitions.push({
         id: i,
-        name: transition.name,
+        name: transition.transitionName,
         parentState: this.stateMachine.states.indexOf(transition.parentState),
         childState: this.stateMachine.states.indexOf(transition.childState)
       })
