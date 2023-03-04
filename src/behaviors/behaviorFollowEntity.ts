@@ -1,6 +1,6 @@
 import type { Entity } from "prismarine-entity";
 import { Movements, goals } from "mineflayer-pathfinder";
-import { StateBehavior } from "../StateBehavior";
+import { StateBehavior } from "../stateBehavior";
 
 /**
  * Causes the bot to follow the target entity.
@@ -8,8 +8,7 @@ import { StateBehavior } from "../StateBehavior";
  * This behavior relies on the mineflayer-pathfinding plugin to be installed.
  */
 export class BehaviorFollowEntity extends StateBehavior {
-  static stateName: string = "followEntity";
-  static autonomous: boolean = true;
+  static stateName = "followEntity";
   movements?: Movements;
   followDistance: number = 0;
 
@@ -28,7 +27,7 @@ export class BehaviorFollowEntity extends StateBehavior {
     this.data.entity = undefined;
   }
 
-  exitCase(): boolean {
+  isFinished(): boolean {
     const distances = this.distanceToTarget();
     return distances < 3;
   }
@@ -43,7 +42,7 @@ export class BehaviorFollowEntity extends StateBehavior {
   }
 
   private stopMoving(): void {
-    this.bot.pathfinder.setGoal(null);
+    this.bot.pathfinder.stop();
   }
 
   private startMoving(entity?: Entity): void {
@@ -65,7 +64,7 @@ export class BehaviorFollowEntity extends StateBehavior {
   }
 
   distanceToTarget(): number {
-    if (!this.data.entity) return 0;
+    if (!this.data.entity) return Infinity;
     return this.bot.entity.position.distanceTo(this.data.entity.position);
   }
 }

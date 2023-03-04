@@ -1,5 +1,5 @@
-# mineflayer-hive-mind
-Hive mind functionality for multiple mineflayer bots.
+# mineflayer-state-machine
+complex logic functionality for a single mineflayer bot.
 
 
 ### Note:

@@ -23,12 +23,10 @@ export interface StateMachineData {
   players?: Player[];
 }
 
-export interface StateBehaviorEvent {
-  stateEntered: (newBehavior: typeof StateBehavior, data: StateMachineData) => void;
-  stateExited: (oldBehavior: typeof StateBehavior, data: StateMachineData) => void;
-}
+export class StateBehavior {
 
-export class StateBehavior extends (EventEmitter as { new (): StrictEventEmitter<EventEmitter, StateBehaviorEvent> }) {
+  static readonly stateName: string = this.name;
+
   /**
    * Bot the state is related to.
    */
@@ -62,12 +60,11 @@ export class StateBehavior extends (EventEmitter as { new (): StrictEventEmitter
   /**
    * Called if the behavior is anonymous per tick, checks if task is complete.
    */
-  exitCase?(): boolean {
+  isFinished(): boolean {
     return false;
   }
 
   constructor(bot: Bot, data: StateMachineData) {
-    super();
     this.bot = bot;
     this.data = data;
   }
@@ -76,12 +73,12 @@ export class StateBehavior extends (EventEmitter as { new (): StrictEventEmitter
 /**
  * The parameters for initializing a state transition.
  */
-export interface HiveTransitionParameters {
-  parent: typeof StateBehavior;
+export interface StateTransitionParameters<Parent extends typeof StateBehavior> {
+  parent: Parent;
   child: typeof StateBehavior;
   name?: string;
   additionalArguments?: any[];
-  shouldTransition?: (data: StateMachineData) => boolean;
+  shouldTransition?: (data: StateMachineData, state: Parent["prototype"]) => boolean;
   onTransition?: (data: StateMachineData) => void;
 }
 
@@ -89,13 +86,13 @@ export interface HiveTransitionParameters {
  * A transition that links when one state (the parent) should transition
  * to another state (the child).
  */
-export class StateTransition {
-  readonly parentState: typeof StateBehavior;
+export class StateTransition<Parent extends typeof StateBehavior = typeof StateBehavior> {
+  readonly parentState: Parent;
   readonly childState: typeof StateBehavior;
   readonly additionalArguments?: any[];
   private triggerState: boolean = false;
-  shouldTransition: (data: StateMachineData) => boolean;
-  onTransition: (data: StateMachineData) => void;
+  shouldTransition: (data: StateMachineData, state: Parent["prototype"]) => boolean;
+  onTransition: (data: StateMachineData, state: Parent["prototype"]) => void;
   transitionName?: string;
 
   constructor({
@@ -105,7 +102,7 @@ export class StateTransition {
     additionalArguments,
     shouldTransition = (data) => false,
     onTransition = (data) => {},
-  }: HiveTransitionParameters) {
+  }: StateTransitionParameters<Parent>) {
     this.parentState = parent;
     this.childState = child;
     this.shouldTransition = shouldTransition;

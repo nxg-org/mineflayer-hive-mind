@@ -1,4 +1,4 @@
-export * from "./HiveMindCentral"
-export * from "./NestedStateMachine"
-export * from "./StateBehavior"
+export * from "./stateMachineCentral"
+export * from "./stateMachineNested"
+export * from "./stateBehavior"
 export * from "./webserver"
